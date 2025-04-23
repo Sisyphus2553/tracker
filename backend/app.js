@@ -1,25 +1,38 @@
+// index.js (Backend)
 const express = require('express');
-const app = express();
-const socketio = require('socket.io');
 const http = require('http');
 const cors = require('cors');
-const server = http.createServer(app);  
+const socketio = require('socket.io');
 
+const app = express();
+app.use(cors());
 
-app.get('/',(req,res)=>{
-    res.send("hello");
-}); 
+const server = http.createServer(app);
 
-const io = socketio(server);
-io.on('connection',(socket)=>{
-   socket.on("send-Location",(data)=>{
-    io.emit("receive-Location",{id: socket.id,...data});
-   })
-   socket.on('disconnect',()=>{
-       io.emit("user-disconnected",socket.id);
-    })
+const io = socketio(server, {
+  cors: {
+    origin: "http://localhost:5173", // React frontend origin
+    methods: ["GET", "POST"]
+  }
 });
 
-server.listen(3000,()=>{
-    console.log("server is running on port 3000");
+app.get('/', (req, res) => {
+  res.send("hello");
+});
+
+io.on('connection', (socket) => {
+  console.log("New client connected:", socket.id);
+
+  socket.on("send-Location", (data) => {
+    io.emit("receive-Location", { id: socket.id, ...data });
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Client disconnected:", socket.id);
+    io.emit("user-disconnected", socket.id);
+  });
+});
+
+server.listen(3000, () => {
+  console.log("Server running on port 3000");
 });
